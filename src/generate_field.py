@@ -46,19 +46,13 @@ def recognise_tile(tile, level):
 	tile_threshold = tile[2]
 	tile_subtype = tile[3]
 
-	tile_template = cv2.imread(templates_path + f'/TileTemplate{tile_subtype}.png', cv2.IMREAD_UNCHANGED)
+	tile_template = cv2.imread(templates_path + f'TileTemplate{tile_subtype}.png', cv2.IMREAD_UNCHANGED)
 	w = tile_template.shape[1]
 	h = tile_template.shape[0]
 
 	result = cv2.matchTemplate(level, tile_template, cv2.TM_CCOEFF_NORMED)
 	min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
 	yloc, xloc = np.where(result >= tile_threshold)
-
-	for (x, y) in zip(xloc, yloc):
-		cv2.rectangle(level, (x, y), (x + w, y + h), (0,255,255), 1)
-	
-	#cv2.imshow("image", level)
-	#cv2.waitKey(0)
   
 	rectangles = []
 	for (x, y) in zip(xloc, yloc):
@@ -74,16 +68,16 @@ def recognise_tile(tile, level):
 
 #------------------------------------------------------------------
 
-level_img = cv2.imread(level_image_path, cv2.IMREAD_UNCHANGED)
-level_img = cv2.cvtColor(level_img, cv2.COLOR_BGR2RGB)
-cv2.imwrite(level_image_path, level_img)
+img = cv2.imread(level_image_path, cv2.IMREAD_UNCHANGED)
+img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+cv2.imwrite(level_image_path, img)
 
-level_img = tf.keras.utils.load_img(level_image_path, color_mode="grayscale")
-level_img = tf.keras.utils.img_to_array(level_img)
+img = tf.keras.utils.load_img(level_image_path, color_mode="grayscale")
+img_array = tf.keras.utils.img_to_array(img)
 
-region = level_img[ceil(ts*fr):floor(ts*lr), ceil(ts*fc):floor(ts*lc)]
-region = tf.keras.utils.array_to_img(region)
-region.save(level_gray_image_path)
+region = img_array[ceil(ts*fr):floor(ts*lr), ceil(ts*fc):floor(ts*lc)]
+region_img = tf.keras.utils.array_to_img(region)
+region_img.save(level_gray_image_path)
 
 level_img = cv2.imread(level_gray_image_path, cv2.IMREAD_UNCHANGED)
 

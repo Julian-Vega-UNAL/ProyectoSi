@@ -11,6 +11,7 @@ from LocalStorage import *
 #------------------------------------------------------------------
 game_width = 320
 game_height = 480
+game_levels = 20
 
 out_width = 512
 out_height = 768
@@ -39,10 +40,10 @@ def open_game(driver, size, address, url):
 def set_level(level):
 	storage.set("isNewPlayer", "false")
 
-	for i in range(1,20):
+	for i in range(1,game_levels+1):
 		storage.set("Level " + str(i), "passed")
     
-	level = "Level " + str((level if level in range(1,20) else 1))
+	level = "Level " + str((level if level in range(1,game_levels+1) else 1))
 
 	storage.set("levelToStart", level)
 	
