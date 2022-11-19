@@ -9,9 +9,13 @@ from time import sleep
 from LocalStorage import *
 
 #------------------------------------------------------------------
-#map_tiles = (15,10) #Rows and Columns
-#tile_size = (64, 64) #Pixels
-window_size = (403, 604) #320 x 480 Game area
+game_width = 320
+game_height = 480
+
+out_width = 512
+out_height = 768
+
+window_size = (game_width+83, game_height+124) #320 x 480 Game area
 
 driver_path = "./src/drivers/chromedriver"
 server = "localhost:9014"
@@ -49,7 +53,8 @@ def generate_level_image(path):
 	game_canvas.screenshot(path)
 
 	img = Image.open(path)
-	img = img.crop((0, 0, 320, 480)) #Left - Top - Right - Bottom
+	img = img.crop((0, 0, game_width, game_height)) #Left - Top - Right - Bottom
+	img = img.resize((out_width, out_height))
 	img.save(path)
 
 #------------------------------------------------------------------
