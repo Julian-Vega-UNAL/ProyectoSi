@@ -1,0 +1,1 @@
+/bin/google-chrome -remote-debugging-port=9014 --user-data-dir="./src/drivers/chromedata"
