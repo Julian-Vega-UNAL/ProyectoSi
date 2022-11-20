@@ -18,6 +18,16 @@ class Node():
 def heuristic(start, end):
     return abs(start[0] - end[0]) + abs(start[1] - end[1])
 
+def cost(element):
+    if element == 0:
+        return 4
+    elif element == "D":
+        return 1
+    elif element == "S":
+        return 0
+    else:
+        return 3
+
 def get_path(node):
     path = []
     while node is not None:
@@ -85,9 +95,13 @@ def astar(maze, start, end):
             if child in closed_list:
                 continue
 
-            child.g = current_node.g + 1
+            spot = maze[child.position[0]][child.position[1]]
+            child.g = current_node.g + cost(spot)
             child.h = heuristic(child.position, end_node.position)
+            child.f = child.g + child.h
             child.parent = current_node
+
+            print("spot:", spot, "child.g:", child.g, "child.h:", child.h, "child.f:", child.f)
 
             condition = False
             for open_node in open_list:
@@ -97,10 +111,11 @@ def astar(maze, start, end):
             if condition: continue
 
             heapq.heappush(open_list, child)
+        print()
     return None
 
 #------------------------------------------------------------------
-def get_player_and_goal(field):
+def get_player_and_goals(field):
     player = (-1, -1)
     goal = (-1, -1)
     for i in range(len(field)):
@@ -117,7 +132,7 @@ def get_player_and_goal(field):
 
 #------------------------------------------------------------------
 field = get_field()
-player, goal = get_player_and_goal(field)
+player, goal = get_player_and_goals(field)
 
 for row in field:
     print(row)
