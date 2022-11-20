@@ -66,6 +66,8 @@ def recognise_tile(tile, level):
 		col = round(rect[1]/ts)
 		field[col][row] = tile_type
 
+def get_field():
+	return field
 #------------------------------------------------------------------
 
 img = cv2.imread(level_image_path, cv2.IMREAD_UNCHANGED)
@@ -91,6 +93,3 @@ if field[0] != ["H", 0, 0, "R", 0, 0, "R", 0]:
 if field[0] == ["M", "M", "M", "M", "M", "M", "M", "M"] and field[4] == ["M", "M", "M", "M", "M", "M", 'PLL', "M"]:
 	field[0] = ["M", "D", 0, "D", 0, "D", 0, "M"]
 
-#------------------------------------------------------------------
-for i in field:
-	print(i)

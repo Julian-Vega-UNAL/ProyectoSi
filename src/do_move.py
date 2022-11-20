@@ -1,24 +1,26 @@
 import pyautogui as py
 import time
-import random
 
 #------------------------------------------------------------------
 def move(x):
 	py.keyDown(x)
-	time.sleep(0.3)
+	time.sleep(0.35) #InputLag
 	py.keyUp(x)
 
-def run():
-	start = random.randint(0, 3)
-	if start == 0:
+def run(movement):
+	if movement == "0":
 		move('up')
-	elif start == 1:
+	elif movement == "1":
 		move('down')
-	elif start == 2:
+	elif movement == "2":
 		move('right')
-	elif start == 3:
+	elif movement == "3":
 		move('left')
 
 #------------------------------------------------------------------
-while True:
-	run()
+chain = "3322221111133300033111222000220000000333331112220"
+
+time.sleep(1) #Grace time
+for movement in chain:
+	print(movement)
+	run(movement)
