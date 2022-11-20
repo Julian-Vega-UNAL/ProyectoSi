@@ -92,8 +92,12 @@ def astar(maze, start, end):
         children = get_children(current_node, end_node, maze)
         
         for child in children:
-            if child in closed_list:
-                continue
+            is_closed = False
+            for closed in closed_list:
+                if child.position == closed.position:
+                    is_closed = True
+                    break
+            if is_closed: continue
 
             spot = maze[child.position[0]][child.position[1]]
             child.g = current_node.g + cost(spot)
@@ -101,7 +105,7 @@ def astar(maze, start, end):
             child.f = child.g + child.h
             child.parent = current_node
 
-            print("spot:", spot, "child.g:", child.g, "child.h:", child.h, "child.f:", child.f)
+            print("spot:", spot, "position:", child.position, "child.g:", child.g, "child.h:", child.h, "child.f:", child.f)
 
             condition = False
             for open_node in open_list:
