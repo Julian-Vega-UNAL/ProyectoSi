@@ -18,16 +18,6 @@ class Node():
 def heuristic(start, end):
     return abs(start[0] - end[0]) + abs(start[1] - end[1])
 
-def cost(element):
-    if element == 0:
-        return 4
-    elif element == "D":
-        return 1
-    elif element == "S":
-        return 0
-    else:
-        return 3
-
 def get_path(node):
     path = []
     while node is not None:
@@ -39,20 +29,23 @@ def get_path(node):
     dir_path = []
     for pos_y, pos_x in path:
         if pos_x == init_x + 1:
-            dir_path.append("➡️")
+            dir_path.append("right")
         elif pos_x == init_x - 1:
-            dir_path.append("⬅️")
+            dir_path.append("left")
         elif pos_y == init_y + 1:
-            dir_path.append("⬇️")
+            dir_path.append("down")
         elif pos_y == init_y -1:
-            dir_path.append("⬆️")
+            dir_path.append("up")
         init_x, init_y = pos_x, pos_y
     return dir_path
 
 def get_children(node, end_node, maze):
     width = len(maze[0])
     height = len(maze)
-    
+
+    if maze[node.position[0]][node.position[1]] == "P":
+        maze[node.position[0]][node.position[1]] = "M"
+
     children = []
 
     for new_position in [(0,-1), (-1,0), (0,1), (1,0)]:
@@ -86,6 +79,10 @@ def astar(maze, start, end):
         current_node = heapq.heappop(open_list)
         closed_list.add(current_node)
         
+        if maze[current_node.position[0]][current_node.position[1]] == "D" and current_node.position != end_node.position:
+            print("Nuevo objetivo encontrado!")
+            return current_node
+
         if current_node.position == end_node.position:
             return get_path(current_node)
         
@@ -100,12 +97,12 @@ def astar(maze, start, end):
             if is_closed: continue
 
             spot = maze[child.position[0]][child.position[1]]
-            child.g = current_node.g + cost(spot)
+            child.g = current_node.g + 1
             child.h = heuristic(child.position, end_node.position)
             child.f = child.g + child.h
             child.parent = current_node
 
-            print("spot:", spot, "position:", child.position, "child.g:", child.g, "child.h:", child.h, "child.f:", child.f)
+            #print("spot:", spot, "position:", child.position, "child.g:", child.g, "child.h:", child.h, "child.f:", child.f)
 
             condition = False
             for open_node in open_list:
@@ -115,31 +112,89 @@ def astar(maze, start, end):
             if condition: continue
 
             heapq.heappush(open_list, child)
-        print()
+        #print()
     return None
 
 #------------------------------------------------------------------
-def get_player_and_goals(field):
-    player = (-1, -1)
-    goal = (-1, -1)
-    for i in range(len(field)):
+def get_critical_nodes(field):
+    goals = []
+    for i in range(len(field)-1, -1, -1):
         row = field[i]
         for j in range(len(row)):
             elem = row[j]
-            if elem == "P":
-                player = (i,j)
-            if elem == "S":
-                goal = (i,j)
-            if player != (-1, -1) and goal != (-1, -1):
-                return player, goal
-    return player, goal
+            if elem == "S" or elem == "D" or elem == "P":
+                goals.append((i,j))
+    return goals
+
+def build_adj_matrix(nodes):
+    total_nodes = len(nodes)
+
+    matrix = [] #total_nodes^2
+    for i in range(total_nodes):
+        row = []
+        for j in range(0, total_nodes):
+            distance = heuristic(nodes[j], nodes[i])
+            distance = distance if distance > 0 else 100
+            row.append(distance)
+        matrix.append(row)
+    return matrix
 
 #------------------------------------------------------------------
 field = get_field()
-player, goal = get_player_and_goals(field)
+nodes_list = get_critical_nodes(field)
+adj_matrix = build_adj_matrix(nodes_list)
 
-for row in field:
-    print(row)
+player = (-1, -1)
+init_idx = -1
+for idx in range(len(nodes_list)):
+    node = nodes_list[idx]
+    if field[node[0]][node[1]] == "P":
+        player = (node[0], node[1])
+        init_idx = idx
+        break
 
-path = astar(field, player, goal)
+iter = 0
+current_idx = init_idx
+current_target = player
+path = []
+while iter < len(nodes_list) -1:
+    min_dst = min(adj_matrix[current_idx])
+    next_target_idx = adj_matrix[current_idx].index(min_dst)
+
+    next_target = nodes_list[next_target_idx]
+
+    for i in range(len(adj_matrix)):
+        adj_matrix[i][current_idx] = 100
+    
+    field[current_target[0]][current_target[1]] = 0
+    #steps.append((current_target, next_target))
+
+    path_or_node = astar(field, current_target, next_target)
+    if path_or_node is None:
+        print("A STAR IS NONE")
+        exit()
+    
+    while isinstance(path_or_node, Node):
+        node = path_or_node
+        next_target = node.position
+
+        for idx in range(len(nodes_list)):
+            aux_node = nodes_list[idx]
+            if aux_node[0] == next_target[0] and aux_node[1] == next_target[1]:
+                next_target_idx = idx
+                break
+        
+        path_or_node = astar(field, current_target, next_target)
+        if path_or_node is None:
+            print("A STAR IS NONE")
+            exit()
+    
+    partial_path = path_or_node
+    print(partial_path)
+    path += partial_path
+
+    current_target = next_target
+    current_idx = next_target_idx
+    iter += 1
+
 print(path)
