@@ -144,6 +144,9 @@ field = get_field()
 nodes_list = get_critical_nodes(field)
 adj_matrix = build_adj_matrix(nodes_list)
 
+for row in field:
+    print(row)
+
 player = (-1, -1)
 init_idx = -1
 for idx in range(len(nodes_list)):
