@@ -13,6 +13,45 @@ class Node():
     
     def __lt__(self, other):
         return self.f < other.f
+class Target():
+    def __init__(self, position, type):
+        self.position = position
+        self.priority = self.get_priority(type)
+        self.type = type
+    
+    def __lt__(self, other):
+        return self.priority < other.priority
+    
+    def get_priority(self, type):
+        priority_dict = {"D": 2, "PLL": 1, "LL": 3, "S": 0, "P": -1}
+        return priority_dict[type]
+    
+    def get_type(self):
+        return self.type
+class Player(Target):
+    def __init__(self, position, diamonds_to_catch):
+        super().__init__(position, "P")
+        self.diamonds_to_catch = diamonds_to_catch
+        self.diamonds = 0
+        self.key = False
+    
+    def catch_key(self):
+        self.key = True
+    
+    def open_door(self):
+        self.key = False
+    
+    def catch_diamond(self):
+        self.diamonds += 1
+    
+    def has_all_diamonds(self):
+        return self.diamonds == self.diamonds_to_catch
+    
+    def has_key(self):
+        return self.key
+    
+    def set_total_diamonds(self, diamonds_amount):
+        self.diamonds_to_catch = diamonds_amount
 
 #------------------------------------------------------------------
 def heuristic(start, end):
@@ -116,15 +155,20 @@ def astar(maze, start, end):
     return None
 
 #------------------------------------------------------------------
-def get_critical_nodes(field):
-    goals = []
+def get_targets(field):
+    target_list = []
     for i in range(len(field)-1, -1, -1):
         row = field[i]
         for j in range(len(row)):
             elem = row[j]
-            if elem == "S" or elem == "D" or elem == "P":
-                goals.append((i,j))
-    return goals
+            if elem == "S" or elem == "D" or elem == "P" or elem == "PLL" or elem == "LL":
+                if elem == "P":
+                    target = Player((i,j), 0)
+                else:
+                    target = Target((i,j), elem)
+                target_list.append(target)
+                
+    return target_list
 
 def build_adj_matrix(nodes):
     total_nodes = len(nodes)
@@ -133,71 +177,76 @@ def build_adj_matrix(nodes):
     for i in range(total_nodes):
         row = []
         for j in range(0, total_nodes):
-            distance = heuristic(nodes[j], nodes[i])
+            distance = heuristic(nodes[j].position, nodes[i].position)
             distance = distance if distance > 0 else 100
             row.append(distance)
         matrix.append(row)
     return matrix
 
-#------------------------------------------------------------------
-field = get_field()
-nodes_list = get_critical_nodes(field)
-adj_matrix = build_adj_matrix(nodes_list)
+def get_final_path(init_target, init_idx):
+    iter = 0
+    current_idx = init_idx
+    current_target = init_target
+    path = []
+    while iter < len(nodes_list) -1:
+        min_dst = min(adj_matrix[current_idx])
+        next_target_idx = adj_matrix[current_idx].index(min_dst)
 
-for row in field:
-    print(row)
+        next_target = nodes_list[next_target_idx]
 
-player = (-1, -1)
-init_idx = -1
-for idx in range(len(nodes_list)):
-    node = nodes_list[idx]
-    if field[node[0]][node[1]] == "P":
-        player = (node[0], node[1])
-        init_idx = idx
-        break
-
-iter = 0
-current_idx = init_idx
-current_target = player
-path = []
-while iter < len(nodes_list) -1:
-    min_dst = min(adj_matrix[current_idx])
-    next_target_idx = adj_matrix[current_idx].index(min_dst)
-
-    next_target = nodes_list[next_target_idx]
-
-    for i in range(len(adj_matrix)):
-        adj_matrix[i][current_idx] = 100
-    
-    field[current_target[0]][current_target[1]] = 0
-    #steps.append((current_target, next_target))
-
-    path_or_node = astar(field, current_target, next_target)
-    if path_or_node is None:
-        print("A STAR IS NONE")
-        exit()
-    
-    while isinstance(path_or_node, Node):
-        node = path_or_node
-        next_target = node.position
-
-        for idx in range(len(nodes_list)):
-            aux_node = nodes_list[idx]
-            if aux_node[0] == next_target[0] and aux_node[1] == next_target[1]:
-                next_target_idx = idx
-                break
+        for i in range(len(adj_matrix)):
+            adj_matrix[i][current_idx] = 100
         
-        path_or_node = astar(field, current_target, next_target)
+        field[current_target.position[0]][current_target.position[1]] = 0
+        #steps.append((current_target, next_target))
+
+        path_or_node = astar(field, current_target.position, next_target.position)
         if path_or_node is None:
             print("A STAR IS NONE")
             exit()
-    
-    partial_path = path_or_node
-    print(partial_path)
-    path += partial_path
+        
+        while isinstance(path_or_node, Node):
+            next_target = path_or_node
 
-    current_target = next_target
-    current_idx = next_target_idx
-    iter += 1
+            for idx in range(len(nodes_list)):
+                aux_node = nodes_list[idx]
+                if aux_node.position == next_target.position:
+                    next_target_idx = idx
+                    break
+            
+            path_or_node = astar(field, current_target.position, next_target.position)
+            if path_or_node is None:
+                print("A STAR IS NONE")
+                exit()
+        
+        partial_path = path_or_node
+        #print(partial_path)
+        path += partial_path
 
-print(path)
+        current_target = next_target
+        current_idx = next_target_idx
+        iter += 1
+    return path
+
+#------------------------------------------------------------------
+field = get_field()
+#for row in field:
+#    print(row)
+
+nodes_list = get_targets(field)
+adj_matrix = build_adj_matrix(nodes_list)
+
+total_diamonds = 0
+player = None
+player_idx = -1
+for node in nodes_list:
+    if node.get_type() == "D":
+        total_diamonds += 1
+    elif node.get_type() == "P":
+        player = node
+
+if (player != None):
+    player.set_total_diamonds(total_diamonds)
+    player_idx = nodes_list.index(player)
+    final_path = get_final_path(player, player_idx)
+    print(final_path)
