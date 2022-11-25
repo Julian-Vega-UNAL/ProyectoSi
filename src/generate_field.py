@@ -93,3 +93,6 @@ if field[0] != ["H", 0, 0, "R", 0, 0, "R", 0]:
 if field[0] == ["M", "M", "M", "M", "M", "M", "M", "M"] and field[4] == ["M", "M", "M", "M", "M", "M", 'PLL', "M"]:
 	field[0] = ["M", "D", 0, "D", 0, "D", 0, "M"]
 
+
+for row in field:
+	print(row)

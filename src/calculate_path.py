@@ -1,4 +1,5 @@
-from generate_field import get_field 
+import os
+from generate_field import get_field
 import heapq
 
 player = None
@@ -18,43 +19,39 @@ class Node():
 class Target():
     def __init__(self, position, type):
         self.position = position
-        self.priority = self.get_priority(type)
         self.type = type
-    
-    def __lt__(self, other):
-        return self.priority < other.priority
-    
-    def get_priority(self, type):
-        priority_dict = {"D": 2, "PLL": 1, "LL": 3, "S": 0, "P": -1}
-        return priority_dict[type]
     
     def get_type(self):
         return self.type
 
 class Player(Target):
-    def __init__(self, position, diamonds_to_catch):
+    def __init__(self, position, diamonds_to_catch, keys_to_catch):
         super().__init__(position, "P")
         self.diamonds_to_catch = diamonds_to_catch
-        self.diamonds = 0
+        self.keys_to_catch = keys_to_catch
         self.key = False
     
     def catch_key(self):
         self.key = True
+        self.keys_to_catch -= 1
     
     def open_door(self):
         self.key = False
     
     def catch_diamond(self):
-        self.diamonds += 1
+        self.diamonds_to_catch -= 1
     
     def has_all_diamonds(self):
-        return self.diamonds == self.diamonds_to_catch
+        return self.diamonds_to_catch == 0
     
     def has_key(self):
         return self.key
     
     def set_total_diamonds(self, diamonds_amount):
         self.diamonds_to_catch = diamonds_amount
+
+    def set_total_keys(self, keys_amount):
+        self.keys_to_catch = keys_amount
 
 #------------------------------------------------------------------
 def heuristic(start, end):
@@ -92,12 +89,12 @@ def get_children(node, end_node, maze):
     for new_position in [(0,-1), (-1,0), (0,1), (1,0)]: 
         child_row, child_col = node_row + new_position[0], node_col + new_position[1]
 
-        child = maze[child_row][child_col]
-
-        #------------------------------------------------------------------
-        #CURRENT NODE CHILDREN'S LOGIC
         if child_row > (height -1) or child_row < 0 or child_col > (width - 1) or child_col < 0:
             continue
+
+        #------------------------------------------------------------------
+        #CURRENT NODE'S CHILDREN LOGIC
+        child = maze[child_row][child_col]
 
         if child == "M":
             continue
@@ -107,9 +104,6 @@ def get_children(node, end_node, maze):
 
         if child == "PLL" and player != None and not player.has_key():
             continue
-
-        if child == "PLL" and player != None and player.has_key():
-            player.open_door()
 
         #------------------------------------------------------------------
 
@@ -141,17 +135,15 @@ def astar(maze, start, end):
         #------------------------------------------------------------------
         #CURRENT NODE IN PATH LOGIC
 
+        if current_node.position == end_node.position:
+            return get_path(current_node)
+        
         if current_type == "PI":
             maze[current_row][current_col] = "M"
         
-        #TODO: If current is objective
-        if current_type == "D" and current_node.position != end_node.position:
-            maze[current_row][current_col] = "P"
-            print("Nuevo objetivo encontrado!")
+        if (current_type == "D" or current_type == "PLL") and current_node.position != end_node.position:
+            print("Nuevo objetivo encontrado!", current_node.position)
             return current_node
-
-        if current_node.position == end_node.position:
-            return get_path(current_node)
         
         #------------------------------------------------------------------
 
@@ -181,15 +173,15 @@ def astar(maze, start, end):
     return None
 
 #------------------------------------------------------------------
-def get_targets(field, type):
+def get_targets(field, types):
     target_list = []
     for i in range(len(field)-1, -1, -1):
         row = field[i]
         for j in range(len(row)):
             elem = row[j]
-            if elem == "P" or elem == type:
+            if elem in types:
                 if elem == "P":
-                    target = Player((i,j), 0)
+                    target = Player((i,j), 0, 0)
                 else:
                     target = Target((i,j), elem)
                 target_list.append(target)
@@ -214,18 +206,23 @@ def get_final_path(maze, init_target, init_idx):
     global nodes_list
     global adj_matrix
 
-    priorities = {"LL": 3, "D": 2, "PLL": 1}
-    priority = priorities["LL"]
-
     iter = 0
     current_idx = init_idx
     current_target = init_target 
     path = []
     while iter < len(nodes_list) -1: 
         #Get next target as the closest target to the current
-        min_dst = min(adj_matrix[current_idx])
-        next_target_idx = adj_matrix[current_idx].index(min_dst)
+        current_target_adj_array = adj_matrix[current_idx].copy()
+        min_dst = min(current_target_adj_array)
+        next_target_idx = current_target_adj_array.index(min_dst)
         next_target = nodes_list[next_target_idx]
+
+        while next_target.type == "LL" and player != None and player.has_key():
+            current_target_adj_array[next_target_idx] = 100
+
+            min_dst = min(current_target_adj_array)
+            next_target_idx = current_target_adj_array.index(min_dst)
+            next_target = nodes_list[next_target_idx]
  
         #The current target was reached, no need to be aimed from anywhere else
         for i in range(len(adj_matrix)):
@@ -235,21 +232,40 @@ def get_final_path(maze, init_target, init_idx):
 
         #------------------------------------------------------------------
         # CURRENT TARGET LOGIC
+
+        if current_target_type == "D" and player != None:
+            player.catch_diamond()
+
         if current_target_type == "LL" and player != None and not player.has_key():
+            print("Key catched!")
             player.catch_key()
-            priority = priorities["D"]
+            print(player.has_key())
+        
+        if current_target_type == "PLL" and player != None and player.has_key():
+            player.open_door()
 
         #------------------------------------------------------------------
 
+        #Find the closest key
+        if player != None:
+            print("Player has key?", player.has_key())
+        while next_target.type != "LL" and player != None and player.keys_to_catch > 0 and player.has_key() == False:
+            current_target_adj_array[next_target_idx] = 100
+
+            min_dst = min(current_target_adj_array)
+            next_target_idx = current_target_adj_array.index(min_dst)
+            next_target = nodes_list[next_target_idx]
+
         maze[current_target.position[0]][current_target.position[1]] = 0
         
-        current_maze = maze.copy()
+        current_maze = [row[:] for row in maze] #Copy matrix
         #A* would find another target in the way. Then, returns the node
+        print(current_target.position, next_target.position)
         path_or_node = astar(current_maze, current_target.position, next_target.position)
         
         #Would reach another new target from another path
         while isinstance(path_or_node, Node): 
-            next_target = path_or_node 
+            next_target = path_or_node
 
             #Gets the index of the returned node
             for idx in range(len(nodes_list)):
@@ -257,14 +273,15 @@ def get_final_path(maze, init_target, init_idx):
                 if aux_node.position == next_target.position:
                     next_target_idx = idx
                     break
-            current_maze = maze.copy()
+            current_maze = [row[:] for row in maze] #Copy matrix
             path_or_node = astar(current_maze, current_target.position, next_target.position)
-        
+
         if path_or_node is None:
             print("PATH NOT FOUND")
             exit()
         
         partial_path = path_or_node
+        print(partial_path)
         path += partial_path
 
         #Takes the next target as the new initial point.
@@ -289,23 +306,28 @@ def get_final_path(maze, init_target, init_idx):
 ### Esto deberia hacer el Nivel 4 y 5
 
 field = get_field()
+os.system("clear")
 ######
 ### Funcion obtener roca
 ###
-
-nodes_list = get_targets(field)
+types = ["S", "D", "P", "PLL", "LL"]
+nodes_list = get_targets(field, types)
 adj_matrix = build_adj_matrix(nodes_list)
 
 total_diamonds = 0
+total_keys = 0
 player_idx = -1
 for node in nodes_list:
     if node.get_type() == "D":
         total_diamonds += 1
+    elif node.get_type() == "LL":
+        total_keys += 1
     elif node.get_type() == "P":
         player = node
 
 if player != None:
     player.set_total_diamonds(total_diamonds)
+    player.set_total_keys(total_keys)
     player_idx = nodes_list.index(player)
     final_path = get_final_path(field, player, player_idx)
     print(final_path)
