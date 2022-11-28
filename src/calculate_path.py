@@ -115,6 +115,7 @@ def get_children(node, end_node, maze):
     return children
 
 def astar(maze, start, end):
+    global player
     start_node = Node(start, 0, heuristic(start, end), None)
     end_node = Node(end, 0, 0, None)
 
@@ -141,8 +142,8 @@ def astar(maze, start, end):
         if current_type == "PI":
             maze[current_row][current_col] = "M"
         
-        if (current_type == "D" or current_type == "PLL") and current_node.position != end_node.position:
-            print("Nuevo objetivo encontrado!", current_node.position)
+        if (current_type == "D" or current_type == "PLL" or (current_type == "LL" and player != None and not player.has_key())) and current_node.position != end_node.position:
+            #print("Nuevo objetivo encontrado!", current_node.position)
             return current_node
         
         #------------------------------------------------------------------
@@ -237,9 +238,7 @@ def get_final_path(maze, init_target, init_idx):
             player.catch_diamond()
 
         if current_target_type == "LL" and player != None and not player.has_key():
-            print("Key catched!")
             player.catch_key()
-            print(player.has_key())
         
         if current_target_type == "PLL" and player != None and player.has_key():
             player.open_door()
@@ -247,8 +246,6 @@ def get_final_path(maze, init_target, init_idx):
         #------------------------------------------------------------------
 
         #Find the closest key
-        if player != None:
-            print("Player has key?", player.has_key())
         while next_target.type != "LL" and player != None and player.keys_to_catch > 0 and player.has_key() == False:
             current_target_adj_array[next_target_idx] = 100
 
@@ -260,7 +257,6 @@ def get_final_path(maze, init_target, init_idx):
         
         current_maze = [row[:] for row in maze] #Copy matrix
         #A* would find another target in the way. Then, returns the node
-        print(current_target.position, next_target.position)
         path_or_node = astar(current_maze, current_target.position, next_target.position)
         
         #Would reach another new target from another path
@@ -281,7 +277,7 @@ def get_final_path(maze, init_target, init_idx):
             exit()
         
         partial_path = path_or_node
-        print(partial_path)
+        #print(partial_path)
         path += partial_path
 
         #Takes the next target as the new initial point.
@@ -291,7 +287,7 @@ def get_final_path(maze, init_target, init_idx):
         iter += 1
     return path
 
-#------------------------------------------------------------------ Proceso Final
+#------------------------------------------------------------------
 
 ### Estrategia para rocas:
 ### guardar en una lista / diccionario adicional los Huecos u rocas, junto a posiciones (Linea 170)
@@ -306,7 +302,7 @@ def get_final_path(maze, init_target, init_idx):
 ### Esto deberia hacer el Nivel 4 y 5
 
 field = get_field()
-os.system("clear")
+#os.system("clear")
 ######
 ### Funcion obtener roca
 ###
@@ -330,4 +326,4 @@ if player != None:
     player.set_total_keys(total_keys)
     player_idx = nodes_list.index(player)
     final_path = get_final_path(field, player, player_idx)
-    print(final_path)
+    #print(final_path)
